@@ -1,16 +1,13 @@
-FROM ubuntu:16.04
+FROM amazoncorretto:16
 
-RUN apt-get update && apt-get install -y \
-    sudo \
-    wget
+WORKDIR /root
 
-# Use Node 10.x (LTS); Xenial default (4.x) does not include npm
-RUN wget -qO- https://deb.nodesource.com/setup_10.x | bash -
+RUN yum install -y git && git clone https://github.com/mareebsiddiqui/vuln-regex-detector.git
 
-COPY . /app
-WORKDIR /app
-ENV VULN_REGEX_DETECTOR_ROOT /app
+WORKDIR /root/vuln-regex-detector/
 
-# configure calls apt-get install, so ensure it has fresh package list
-RUN apt-get update && \
-    JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8 ./configure
+ENV VULN_REGEX_DETECTOR_ROOT /root/vuln-regex-detector/
+
+RUN ./configure
+
+RUN yum install -y "perl(JSON::PP)"
