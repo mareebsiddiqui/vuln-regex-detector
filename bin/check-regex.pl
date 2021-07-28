@@ -139,7 +139,6 @@ sub check_vulnerability {
   unlink($tmpFile, $progressFile) unless $DEBUG;
 
   # Report results.
-  print $result;
   return encode_json($result);
 }
 
