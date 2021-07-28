@@ -165,7 +165,7 @@ sub writeToFile {
   my %args = @_;
 
 	open(my $fh, '>', $args{file});
-	print $fh $args{contents};
+	# print $fh $args{contents};
 	close $fh;
 
   return $args{file};
