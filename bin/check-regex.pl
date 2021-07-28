@@ -141,7 +141,6 @@ sub check_vulnerability {
   # Report results.
   return encode_json($result);
 }
-exit 0;
 
 ##############################
 
