@@ -5,7 +5,7 @@ package MyWebServer;
 use HTTP::Server::Simple::CGI;
 use base qw(HTTP::Server::Simple::CGI);
 use CGI qw(:standard);
- 
+require "./bin/check-regex.pl"
 my %dispatch = (
     '/validate' => \&validate,
     # ...
@@ -38,7 +38,7 @@ sub validate {
     print header('application/json');
 
     my $regex = $cgi->param('regex');
-    my $res = `./bin/check-regex.pl "$regex"`;
+    my $res = check_vulnerability($regex);
     print $res;
 }
  
