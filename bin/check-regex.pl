@@ -57,156 +57,154 @@ for my $script ($detectVuln, $validateVuln) {
 }
 
 # Args.
-if (scalar(@ARGV) != 1) {
-  die "Usage: $0 regex-pattern.json\n";
-}
+# if (scalar(@ARGV) != 1) {
+#   die "Usage: $0 regex-pattern.json\n";
+# }
 
-my $queryFile = $ARGV[0];
-if (not -f $queryFile) {
-  die "Error, no such patternFile $queryFile\n";
-}
+# my $queryFile = $ARGV[0];
+# if (not -f $queryFile) {
+#   die "Error, no such patternFile $queryFile\n";
+# }
 
-my $query = decode_json(`cat $queryFile`);
+my $query = {"pattern" => $ARGV[0]};
 
 # Handle common variations in args.
-my %nick2real = ("regex"    => "pattern",
-                 "language" => "validateVuln_language",
-                );
-for my $nick (keys %nick2real) {
-  if (defined $query->{$nick} and not defined $query->{$nick2real{$nick}}) {
-    $query->{$nick2real{$nick}} = $query->{$nick};
-  }
-}
+# my %nick2real = ("regex"    => "pattern",
+#                  "language" => "validateVuln_language",
+#                 );
+# for my $nick (keys %nick2real) {
+#   if (defined $query->{$nick} and not defined $query->{$nick2real{$nick}}) {
+#     $query->{$nick2real{$nick}} = $query->{$nick};
+#   }
+# }
 
-for my $key ("pattern", "validateVuln_language") {
-  if (not defined $query->{$key}) {
-    die "Error, must provide key $key\n";
-  }
-}
+# for my $key ("pattern", "validateVuln_language") {
+#   if (not defined $query->{$key}) {
+#     die "Error, must provide key $key\n";
+#   }
+# }
 
-if (defined $query->{useCache} and not $query->{useCache}) {
-  &log("Query says I should not use the cache");
-  $useCache = 0;
-}
+# if (defined $query->{useCache} and not $query->{useCache}) {
+#   &log("Query says I should not use the cache");
+#   $useCache = 0;
+# }
 
 # We can't use the cache if we have no client.
-if (not -x $cacheClient) {
-  &log("Cannot use cache, could not find cacheClient $cacheClient");
-  $useCache = 0;
-}
+# if (not -x $cacheClient) {
+#   &log("Cannot use cache, could not find cacheClient $cacheClient");
+#   $useCache = 0;
+# }
 
-# Query cache?
-my $cacheResponse;
-my $cacheHit = 0;
-if ($useCache) {
-  &log("Querying the cache");
-  $cacheResponse = &queryCache($query);
-  &log("Cache says $cacheResponse->{result}");
-  if ($cacheResponse->{result} eq $PATTERN_SAFE or $cacheResponse->{result} eq $PATTERN_VULNERABLE) {
-    $cacheHit = 1;
-  }
-}
+# # Query cache?
+# my $cacheResponse;
+# my $cacheHit = 0;
+# if ($useCache) {
+#   &log("Querying the cache");
+#   $cacheResponse = &queryCache($query);
+#   &log("Cache says $cacheResponse->{result}");
+#   if ($cacheResponse->{result} eq $PATTERN_SAFE or $cacheResponse->{result} eq $PATTERN_VULNERABLE) {
+#     $cacheHit = 1;
+#   }
+# }
 
 my $result;
-if ($cacheHit) {
-  $result = &translateCacheResponse($cacheResponse);
+# if ($cacheHit) {
+  # $result = &translateCacheResponse($cacheResponse);
+# }
+# else {
+$result = { "pattern" => $query->{pattern} };
+
+my %defaults = ("detectVuln_timeLimit"   => 60*1,   # 1 minute in seconds
+                "detectVuln_memoryLimit" => 1024*8, # 8GB in MB. Weideman/java is greedy.
+                # $validateVuln requires nPumps and timeLimit.
+                # Choose sensible defaults.
+                "validateVuln_nPumps"    => 250000, # 250K pumps
+                "validateVuln_timeLimit" => 5,      # 5 seconds
+                );
+for my $key (keys %defaults) {
+  &log("Using default for $key: $defaults{$key}");
+  $query->{$key} = $defaults{$key};
 }
-else {
-  $result = { "pattern" => $query->{pattern} };
 
-  my %defaults = ("detectVuln_timeLimit"   => 60*1,   # 1 minute in seconds
-                  "detectVuln_memoryLimit" => 1024*8, # 8GB in MB. Weideman/java is greedy.
-                  # $validateVuln requires nPumps and timeLimit.
-                  # Choose sensible defaults.
-                  "validateVuln_nPumps"    => 250000, # 250K pumps
-                  "validateVuln_timeLimit" => 5,      # 5 seconds
-                 );
-  for my $key (keys %defaults) {
-    if (not defined $query->{$key}) {
-      &log("Using default for $key: $defaults{$key}");
-      $query->{$key} = $defaults{$key};
-    }
-  }
+### Query detectors.
 
-  ### Query detectors.
+# Prep a query to $detectVuln.
+my $detectVulnQuery = { "pattern" => $query->{pattern} };
 
-  # Prep a query to $detectVuln.
-  my $detectVulnQuery = { "pattern" => $query->{pattern} };
+# Let $detectVuln set these defaults itself.
+if (defined $query->{detectVuln_detectors}) {
+  $detectVulnQuery->{detectors} = $query->{detectVuln_detectors};
+}
+if (defined $query->{detectVuln_timeLimit}) {
+  $detectVulnQuery->{timeLimit} = $query->{detectVuln_timeLimit};
+}
+if (defined $query->{detectVuln_memoryLimit}) {
+  $detectVulnQuery->{memoryLimit} = $query->{detectVuln_memoryLimit};
+}
 
-  # Let $detectVuln set these defaults itself.
-  if (defined $query->{detectVuln_detectors}) {
-    $detectVulnQuery->{detectors} = $query->{detectVuln_detectors};
-  }
-  if (defined $query->{detectVuln_timeLimit}) {
-    $detectVulnQuery->{timeLimit} = $query->{detectVuln_timeLimit};
-  }
-  if (defined $query->{detectVuln_memoryLimit}) {
-    $detectVulnQuery->{memoryLimit} = $query->{detectVuln_memoryLimit};
-  }
+# Query $detectVuln.
+&log("Querying detectors");
+&writeToFile("file"=>$tmpFile, "contents"=>encode_json($detectVulnQuery));
+my $detectReport = decode_json(&chkcmd("$detectVuln $tmpFile 2>>$progressFile"));
+&log("Detectors said: " . encode_json($detectReport));
 
-  # Query $detectVuln.
-  &log("Querying detectors");
-  &writeToFile("file"=>$tmpFile, "contents"=>encode_json($detectVulnQuery));
-  my $detectReport = decode_json(&chkcmd("$detectVuln $tmpFile 2>>$progressFile"));
-  &log("Detectors said: " . encode_json($detectReport));
+$result->{detectReport} = $detectReport;
 
-  $result->{detectReport} = $detectReport;
+### Validate any reported vulnerabilities.
 
-  ### Validate any reported vulnerabilities.
- 
-  # Prep a query to $validateVuln.
-  my $validateVulnQuery = { "pattern"   => $query->{pattern},
-                            "language"  => $query->{validateVuln_language},
-                            "nPumps"    => $query->{validateVuln_nPumps},
-                            "timeLimit" => $query->{validateVuln_timeLimit},
-                          };
+# Prep a query to $validateVuln.
+my $validateVulnQuery = { "pattern"   => $query->{pattern},
+                          "language"  => $query->{validateVuln_language},
+                          "nPumps"    => $query->{validateVuln_nPumps},
+                          "timeLimit" => $query->{validateVuln_timeLimit},
+                        };
 
-  # See what each detector thought.
-  # Bail if any finds a vulnerability so we don't waste time.
-  $result->{isVulnerable} = 0;
-  for my $do (@{$detectReport->{detectorOpinions}}) {
-    # Are we done?
-    last if ($result->{isVulnerable});
+# See what each detector thought.
+# Bail if any finds a vulnerability so we don't waste time.
+$result->{isVulnerable} = 0;
+for my $do (@{$detectReport->{detectorOpinions}}) {
+  # Are we done?
+  last if ($result->{isVulnerable});
 
-    # Check this detector's opinion.
-    &log("Checking $do->{name} for timeout-triggering evil input");
+  # Check this detector's opinion.
+  &log("Checking $do->{name} for timeout-triggering evil input");
 
-    # Maybe vulnerable?
-    if ($do->{hasOpinion} and $do->{opinion}->{canAnalyze} and not $do->{opinion}->{isSafe}) {
-      my $isVariant = ($do->{patternVariant} eq $query->{pattern}) ? 1 : 0;
-      &log("$do->{name}: the regex may be vulnerable (isVariant $isVariant)");
-      # If unparseable, evilInput is an empty array or has elt 0 'COULD-NOT-PARSE'
-      for my $evilInput (@{$do->{opinion}->{evilInput}}) {
-        if ($evilInput eq "COULD-NOT-PARSE") {
-          &log("  $do->{name}: Could not parse the evil input");
-          next;
-        }
-
-        # Does this evilInput trigger catastrophic backtracking?
-        $validateVulnQuery->{evilInput} = $evilInput;
-        my $queryString = encode_json($validateVulnQuery);
-        &log("  $do->{name}: Validating the evil input (query: $queryString)");
-        &writeToFile("file"=>$tmpFile, "contents"=>$queryString);
-        my $report = decode_json(&chkcmd("$validateVuln $tmpFile 2>>$progressFile"));
-        if ($report->{timedOut}) {
-          &log("  $do->{name}: evil input triggered a regex timeout");
-          $result->{isVulnerable} = 1;
-          $result->{validateReport} = $report;
-          last;
-        } else {
-          &log("  $do->{name}: evil input did not trigger a regex timeout");
-        }
+  # Maybe vulnerable?
+  if ($do->{hasOpinion} and $do->{opinion}->{canAnalyze} and not $do->{opinion}->{isSafe}) {
+    my $isVariant = ($do->{patternVariant} eq $query->{pattern}) ? 1 : 0;
+    &log("$do->{name}: the regex may be vulnerable (isVariant $isVariant)");
+    # If unparseable, evilInput is an empty array or has elt 0 'COULD-NOT-PARSE'
+    for my $evilInput (@{$do->{opinion}->{evilInput}}) {
+      if ($evilInput eq "COULD-NOT-PARSE") {
+        &log("  $do->{name}: Could not parse the evil input");
+        next;
       }
-    } else {
-      &log("  $do->{name}: says not vulnerable");
-    }
-  }
 
-  if ($useCache) {
-    &log("Updating the cache");
-    &updateCache($result);
+      # Does this evilInput trigger catastrophic backtracking?
+      $validateVulnQuery->{evilInput} = $evilInput;
+      my $queryString = encode_json($validateVulnQuery);
+      &log("  $do->{name}: Validating the evil input (query: $queryString)");
+      &writeToFile("file"=>$tmpFile, "contents"=>$queryString);
+      my $report = decode_json(&chkcmd("$validateVuln $tmpFile 2>>$progressFile"));
+      if ($report->{timedOut}) {
+        &log("  $do->{name}: evil input triggered a regex timeout");
+        $result->{isVulnerable} = 1;
+        $result->{validateReport} = $report;
+        last;
+      } else {
+        &log("  $do->{name}: evil input did not trigger a regex timeout");
+      }
+    }
+  } else {
+    &log("  $do->{name}: says not vulnerable");
   }
 }
+
+# if ($useCache) {
+#   &log("Updating the cache");
+#   &updateCache($result);
+# }
+# }
 
 # Cleanup.
 unlink($tmpFile, $progressFile) unless $DEBUG;

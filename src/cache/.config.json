@@ -1,6 +1,6 @@
 {
 	"clientConfig": {
-		"useCache": 1,
+		"useCache": 0,
 		"cacheServer": "toybox.cs.vt.edu",
 		"cachePort": 8000,
 		"canDiscloseAnonymizedQueries": 1
