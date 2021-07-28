@@ -19,13 +19,6 @@ if (not defined $ENV{VULN_REGEX_DETECTOR_ROOT}) {
 # Map extension to validator
 my $pref = "$ENV{VULN_REGEX_DETECTOR_ROOT}/src/validate/src";
 my %language2validator = (
-  "javascript" => "$pref/javascript/query-node.js",
-  "python"     => "$pref/python/query-python.py",
-  "php"        => "$pref/php/query-php.php",
-  "ruby"       => "$pref/ruby/query-ruby.rb",
-  "perl"       => "$pref/perl/query-perl.pl",
-  "rust"       => "$pref/rust/query-rust",
-  "go"         => "$pref/go/query-go",
   "java"       => "$pref/java/query-java.pl",
 );
 
