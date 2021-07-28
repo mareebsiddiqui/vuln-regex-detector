@@ -45,5 +45,4 @@ sub resp_hello {
 } 
  
 # start the server on port 8080
-my $pid = MyWebServer->new(8080);
-print "Use 'kill $pid' to stop server.\n";
+MyWebServer->new(8080)->run();
