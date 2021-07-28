@@ -51,6 +51,7 @@ sub check_vulnerability {
 
   my %defaults = ("detectVuln_timeLimit"   => 60*1,   # 1 minute in seconds
                   "detectVuln_memoryLimit" => 1024*8, # 8GB in MB. Weideman/java is greedy.
+		  "detectVuln_language" => "java",
                   # $validateVuln requires nPumps and timeLimit.
                   # Choose sensible defaults.
                   "validateVuln_language" => "java",
@@ -65,7 +66,7 @@ sub check_vulnerability {
   ### Query detectors.
 
   # Prep a query to $detectVuln.
-  my $detectVulnQuery = { "pattern" => $query->{pattern} };
+  my $detectVulnQuery = { "pattern" => $query->{pattern}, };
 
   # Let $detectVuln set these defaults itself.
   if (defined $query->{detectVuln_detectors}) {
@@ -136,7 +137,9 @@ sub check_vulnerability {
     }
   }
 
-  unlink($tmpFile, $progressFile) unless $DEBUG;
+  #unlink($tmpFile, $progressFile) unless $DEBUG;
+
+  print "we here";
 
   # Report results.
   return encode_json($result);

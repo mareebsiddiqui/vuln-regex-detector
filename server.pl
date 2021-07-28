@@ -10,7 +10,6 @@ require "./bin/check-regex.pl";
 
 my %dispatch = (
     '/validate' => \&validate,
-    # ...
 );
  
 sub handle_request {
@@ -41,7 +40,8 @@ sub validate {
 
     my $regex = $cgi->param('regex');
     my $res = check_vulnerability($regex);
-    print $res;
+    print "hello";
+    #print $res;
 }
  
 } 
