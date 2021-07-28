@@ -40,8 +40,7 @@ sub validate {
 
     my $regex = $cgi->param('regex');
     my $res = check_vulnerability($regex);
-    print "hello";
-    #print $res;
+    print $res;
 }
  
 } 

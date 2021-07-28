@@ -66,7 +66,7 @@ sub check_vulnerability {
   ### Query detectors.
 
   # Prep a query to $detectVuln.
-  my $detectVulnQuery = { "pattern" => $query->{pattern}, };
+  my $detectVulnQuery = { "pattern" => $query->{pattern} };
 
   # Let $detectVuln set these defaults itself.
   if (defined $query->{detectVuln_detectors}) {
@@ -137,9 +137,7 @@ sub check_vulnerability {
     }
   }
 
-  #unlink($tmpFile, $progressFile) unless $DEBUG;
-
-  print "we here";
+  unlink($tmpFile, $progressFile) unless $DEBUG;
 
   # Report results.
   return encode_json($result);
@@ -163,10 +161,9 @@ sub readFile {
 # output: $file
 sub writeToFile {
   my %args = @_;
-
-	open(my $fh, '>', $args{file});
-	# print $fh $args{contents};
-	close $fh;
+  open(my $fh, '>', $args{file});
+  print $fh $args{contents};
+  close $fh;
 
   return $args{file};
 }
@@ -176,7 +173,6 @@ sub cmd {
   &log("$cmd");
   my $out = `$cmd`;
   my $rc = $? >> 8;
-
   return ($rc, $out);
 }
 
