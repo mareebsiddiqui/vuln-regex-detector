@@ -191,3 +191,5 @@ sub log {
   my ($msg) = @_;
   print STDERR "$msg\n";
 }
+
+1;
