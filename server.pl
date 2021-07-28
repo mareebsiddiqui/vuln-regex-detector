@@ -5,7 +5,9 @@ package MyWebServer;
 use HTTP::Server::Simple::CGI;
 use base qw(HTTP::Server::Simple::CGI);
 use CGI qw(:standard);
-require "./bin/check-regex.pl"
+
+require "./bin/check-regex.pl";
+
 my %dispatch = (
     '/validate' => \&validate,
     # ...
