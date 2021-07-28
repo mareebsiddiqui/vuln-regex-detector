@@ -4,9 +4,10 @@ package MyWebServer;
  
 use HTTP::Server::Simple::CGI;
 use base qw(HTTP::Server::Simple::CGI);
+use CGI qw(:standard);
  
 my %dispatch = (
-    '/hello' => \&resp_hello,
+    '/validate' => \&validate,
     # ...
 );
  
@@ -30,16 +31,15 @@ sub handle_request {
     }
 }
  
-sub resp_hello {
+sub validate {
     my $cgi  = shift;   # CGI.pm object
     return if !ref $cgi;
      
-    my $who = $cgi->param('name');
-     
-    print $cgi->header,
-          $cgi->start_html("Hello"),
-          $cgi->h1("Hello $who!"),
-          $cgi->end_html;
+    print header('application/json');
+
+    my $regex = $cgi->param('regex');
+    my $res = `./bin/check-regex.pl "$regex"`;
+    print $res;
 }
  
 } 
