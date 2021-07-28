@@ -118,6 +118,7 @@ my %defaults = ("detectVuln_timeLimit"   => 60*1,   # 1 minute in seconds
                 "detectVuln_memoryLimit" => 1024*8, # 8GB in MB. Weideman/java is greedy.
                 # $validateVuln requires nPumps and timeLimit.
                 # Choose sensible defaults.
+                "validateVuln_language" => "java",
                 "validateVuln_nPumps"    => 250000, # 250K pumps
                 "validateVuln_timeLimit" => 5,      # 5 seconds
                 );
