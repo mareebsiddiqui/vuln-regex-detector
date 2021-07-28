@@ -11,8 +11,10 @@ ENV SKIP_PKG_DEPS 1
 
 RUN ./configure
 
-RUN yum install -y "perl(JSON::PP) perl(HTTP::Daemon)"
+RUN wget https://download-ib01.fedoraproject.org/pub/epel/7/x86_64/Packages/e/epel-release-7-13.noarch.rpm
+RUN rpm -Uvh epel-release*rpm
+RUN yum install perl-HTTP-Server-Simple -y
 
-EXPOSE 4444
+EXPOSE 8080
 
-RUN perl server.pl
+CMD perl server.pl
