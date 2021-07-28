@@ -19,18 +19,6 @@ if (not defined $ENV{VULN_REGEX_DETECTOR_ROOT}) {
   die "Error, you must define VULN_REGEX_DETECTOR_ROOT\n";
 }
 
-# Linux or bust
-my $os = $^O;
-if ($os ne "linux") {
-  die "Error, $os is unsupported. Only works on Linux\n";
-}
-
-# Ubuntu or bust
-my $osRelease = `cat /etc/os-release 2>/dev/null`;
-if ($osRelease !~ m/NAME="Ubuntu"/i) {
-  die "Error, only Ubuntu is supported. Your machine is:\n$osRelease\n";
-}
-
 &log("Configuring repo");
 
 if ($INSTALL_PKG_DEPS) {
@@ -43,7 +31,7 @@ if ($INSTALL_PKG_DEPS) {
   my @requiredPackages_ubuntu = (@miscPackages_ubuntu, @rxxr2Packages_ubuntu, @wustholzPackages_ubuntu, @shenPackages_ubuntu, @dynamicAnalysisPackages_ubuntu);
   
   &log("Installing dependencies");
-  &chkcmd("sudo apt-get install -y @requiredPackages_ubuntu");
+  &chkcmd("yum install -y @requiredPackages_ubuntu");
 }
 else {
   # I know rxxr2 works on ocaml 4.02.3 since that is the Ubuntu 16 version.
@@ -96,17 +84,7 @@ sub configureDetectors {
 
 sub configureValidators {
   ## Build validators that need it
-
-  # Rust
-  &log("Building Rust validator");
-  chdir "$ENV{VULN_REGEX_DETECTOR_ROOT}/src/validate/src/rust" or die "Error, chdir failed: $!\n";
-  &chkcmd("make");
-
-  # Go
-  &log("Building Go validator");
-  chdir "$ENV{VULN_REGEX_DETECTOR_ROOT}/src/validate/src/go" or die "Error, chdir failed: $!\n";
-  &chkcmd("make");
-
+  
   # Java
   &log("Building Java validator");
   chdir "$ENV{VULN_REGEX_DETECTOR_ROOT}/src/validate/src/java" or die "Error, chdir failed: $!\n";
