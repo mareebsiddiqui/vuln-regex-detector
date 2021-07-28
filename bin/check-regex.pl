@@ -33,22 +33,8 @@ if (not defined $ENV{VULN_REGEX_DETECTOR_ROOT}) {
   die "Error, VULN_REGEX_DETECTOR_ROOT must be defined\n";
 }
 
-# Use cache?
-my $useCache = 0;
-my $cacheConfigFile = "$ENV{VULN_REGEX_DETECTOR_ROOT}/src/cache/.config.json";
-my $cacheConfig;
-if (-f $cacheConfigFile) {
-  $cacheConfig = decode_json(&readFile("file"=>$cacheConfigFile));
-  if ($cacheConfig->{clientConfig}->{useCache}) {
-    &log("Config says to use the cache");
-    $useCache = 1;
-  }
-}
-&log("Config says useCache $useCache");
-
 my $detectVuln = "$ENV{VULN_REGEX_DETECTOR_ROOT}/src/detect/detect-vuln.pl";
 my $validateVuln = "$ENV{VULN_REGEX_DETECTOR_ROOT}/src/validate/validate-vuln.pl";
-my $cacheClient = "$ENV{VULN_REGEX_DETECTOR_ROOT}/src/cache/client/cli/cache-client.js"; # We don't need this to work.
 
 for my $script ($detectVuln, $validateVuln) {
   if (not -x $script) {
@@ -56,18 +42,8 @@ for my $script ($detectVuln, $validateVuln) {
   }
 }
 
-# Args.
-# if (scalar(@ARGV) != 1) {
-#   die "Usage: $0 regex-pattern.json\n";
-# }
-
-# my $queryFile = $ARGV[0];
-# if (not -f $queryFile) {
-#   die "Error, no such patternFile $queryFile\n";
-# }
-
 sub check_vulnerability {
-  my $query = {"pattern" => @_[0]};
+  my $query = {"pattern" => $_[0]};
 
   my $result;
 
@@ -166,122 +142,6 @@ sub check_vulnerability {
   return encode_json($result);
 }
 exit 0;
-
-######################
-
-# input: ($query) keys: pattern language
-# output: ($cacheResponse) keys: pattern language result [evilInput]
-sub queryCache {
-  my ($query) = @_;
-
-  my $unknownResponse = {
-    "pattern"  => $query->{pattern},
-    "language" => $query->{language},
-    "result"   => $PATTERN_UNKNOWN,
-  };
-
-  if (not -x $cacheClient) {
-    &log("queryCache: Could not find client $cacheClient");
-    return $unknownResponse;
-  }
-
-  my $tmpFile = "/tmp/detect-vuln_queryCache-$$.json";
-  my $cacheQuery = {
-    "pattern"                      => $query->{pattern},
-    "language"                     => $query->{language},
-    "requestType"                  => $REQUEST_LOOKUP,
-    "canDiscloseAnonymizedQueries" => $cacheConfig->{clientConfig}->{canDiscloseAnonymizedQueries},
-  };
-  &writeToFile("file"=>$tmpFile, "contents"=>encode_json($cacheQuery));
-  my ($rc, $out) = &cmd("$cacheClient $tmpFile 2>>$progressFile");
-  unlink $tmpFile;
-
-  &log("cacheClient: rc $rc out\n$out");
-
-  if ($rc eq 0) {
-    my $ret = decode_json($out);
-
-    if (not ref($ret->{result})) {
-      &log("ret doesn't have a long result");
-      return $unknownResponse;
-    }
-    if ($ret->{result}->{result} ne $PATTERN_VULNERABLE and $ret->{result}->{result} ne $PATTERN_SAFE) {
-      &log("ret has unexpected result $ret->{result}->{result}");
-      return $unknownResponse;
-    }
-
-    my $cacheResponse = {
-      "pattern"  => $query->{pattern},
-      "language" => $query->{language},
-      "result"   => $ret->{result}->{result},
-      "_full"    => $ret,
-    };
-    if ($ret->{result}->{result} eq $PATTERN_VULNERABLE) {
-      $cacheResponse->{evilInput} = $ret->{result}->{result};
-    }
-
-    return $cacheResponse;
-  }
-
-  return $unknownResponse;
-}
-
-# input: ($checkRegexResponse) from a local query
-# output: ()
-sub updateCache {
-  my ($checkRegexResponse) = @_;
-
-  if (not -x $cacheClient) {
-    &log("updateCache: Could not find client $cacheClient");
-    return;
-  }
-
-  # Build "query".
-  my $cacheQuery = {
-    "pattern"                      => $query->{pattern},
-    "language"                     => $query->{language},
-    "requestType"                  => $REQUEST_UPDATE,
-    "result"                       => $checkRegexResponse->{isVulnerable} ? $PATTERN_VULNERABLE : $PATTERN_SAFE,
-    "canDiscloseAnonymizedQueries" => $cacheConfig->{clientConfig}->{canDiscloseAnonymizedQueries},
-  };
-  if ($checkRegexResponse->{isVulnerable}) {
-    $cacheQuery->{evilInput} = $checkRegexResponse->{validateReport}->{evilInput};
-  }
-
-  my $tmpFile = "/tmp/detect-vuln_queryCache-$$.json";
-  &writeToFile("file"=>$tmpFile, "contents"=>encode_json($cacheQuery));
-  my ($rc, $out) = &cmd("$cacheClient $tmpFile 2>>$progressFile");
-  unlink $tmpFile;
-
-  &log("updateCache: rc $rc out\n$out");
-  return;
-}
-
-# input: ($cacheResponse) from &queryCache
-# output: has all the fields that a local query has, plus '"_fromCache": 1'
-sub translateCacheResponse {
-  my ($cacheResponse) = @_;
-
-  my $checkRegexResponse = {
-    "_fromCache"   => 1,
-    "pattern"      => $cacheResponse->{pattern},
-    "language"     => $cacheResponse->{language},
-  };
-
-  if ($cacheResponse->{result} eq $PATTERN_SAFE) {
-    $checkRegexResponse->{isVulnerable} = 0;
-  }
-  elsif ($cacheResponse->{result} eq $PATTERN_VULNERABLE) {
-    $checkRegexResponse->{isVulnerable} = 1;
-    $checkRegexResponse->{validateReport} = {
-      "pattern"   => $cacheResponse->{pattern},
-      "language"  => $cacheResponse->{language},
-      "evilInput" => $cacheResponse->{evilInput}
-    };
-  }
-
-  return $checkRegexResponse;
-}
 
 ##############################
 
