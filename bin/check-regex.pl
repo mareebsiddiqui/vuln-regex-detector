@@ -172,8 +172,13 @@ sub cmd {
   my ($cmd) = @_;
   &log("$cmd");
   my $out = `$cmd`;
-  my $rc = $? >> 8;
-  return ($rc, $out);
+  if($? ne -1) {
+    my $rc = $? >> 8;
+    return ($rc, $out);
+  }
+  else {
+    return (0, $out);
+  }
 }
 
 sub chkcmd {
